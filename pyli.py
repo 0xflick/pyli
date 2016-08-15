@@ -1,15 +1,16 @@
 import math
 import operator as op
 
-program = '(begin (define r 10) (* pi (* r r)))'
 Symbol = str
 List = list
 Number = (int, float)
+
 
 def tokenize(program):
     """returns a list of tokens for a given input string"""
     t = program.replace('(', ' ( ').replace(')', ' ) ').split()
     return [integerize(token) for token in t]
+
 
 def integerize(token):
     """converts strings corresponding to integers into their equivalents"""
@@ -20,6 +21,7 @@ def integerize(token):
             return float(token)
         except ValueError:
             return Symbol(token)
+
 
 def parse(token_list):
     """converts a list of tokens into something with structure"""
@@ -37,12 +39,13 @@ def parse(token_list):
     else:
         return t
 
+
 def standard_env():
     """returns a standard environment"""
     env = dict()
     env.update(vars(math))
     env.update({
-        '+' :         op.add,
+        '+':          op.add,
         '-':          op.sub,
         '*':          op.mul,
         '/':          op.truediv,
@@ -54,26 +57,27 @@ def standard_env():
         '=':          op.eq,
         'abs':        abs,
         'append':     op.add,
-        'begin':      lambda *x:   x[-1],
-        'car':        lambda x:    x[0],
-        'cdr':        lambda x:    x[1: ],
-        'cons':       lambda x, y: [x] + y,
+        'begin':      (lambda *x:   x[-1]),
+        'car':        (lambda x:    x[0]),
+        'cdr':        (lambda x:    x[1:]),
+        'cons':       (lambda x, y: [x] + y),
         'eq':         op.is_,
         'equal?':     op.eq,
         'length':     len,
-        'list':       lambda *x:   list(x),
-        'list?':      lambda x:    isinstance(x, List),
+        'list':       (lambda *x:   list(x)),
+        'list?':      (lambda x:    isinstance(x, List)),
         'map':        map,
         'max':        max,
         'min':        min,
         'not':        op.not_,
-        'null?':      lambda x:    x == [],
-        'number?':    lambda x:    isinstance(x, Number),
+        'null?':      (lambda x:    x == []),
+        'number?':    (lambda x:    isinstance(x, Number)),
         'procedure?': callable,
         'round':      round,
-        'symbol':     lambda x:    isinstance(x, Symbol)
+        'symbol':     (lambda x:    isinstance(x, Symbol))
     })
     return env
+
 
 def evaluate(x, env):
     """evaluates program"""
@@ -87,9 +91,17 @@ def evaluate(x, env):
     elif x[0] == 'if':
         (_, test, conseq, alt) = x
         expr = (conseq if evaluate(conseq, env) else alt)
-        return evaulate(expr, env)
+        return evaluate(expr, env)
     else:
         proc = evaluate(x[0], env)
         args = [evaluate(arg, env) for arg in x[1:]]
 
         return proc(*args)
+
+
+def repl():
+    """a read-eval-print loop"""
+    while True:
+        val = evaluate(parse(tokenize(input('pyli >>  '))), standard_env())
+        if val is not None:
+            print(val)
