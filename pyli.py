@@ -23,10 +23,14 @@ class Procedure(object):
 class Env(co.ChainMap):
     """Variant of ChainMap that allows direct updates to inner scopes"""
 
-    def deep(self, key):
+    def deep_set(self, key, val):
         for mapping in self.maps:
             if key in mapping:
-                return mapping
+                if isinstance(mapping, Env):
+                    mapping.deep_set(key, val)
+                else:
+                    mapping[key] = val
+                return
 
 
 def tokenize(program):
@@ -128,7 +132,7 @@ def evaluate(x, env):
         return exp
     elif x[0] == 'set!':
         _, var, exp = x
-        env.deep(var)[var] = evaluate(exp, env)
+        env.deep_set(var, evaluate(exp, env))
     elif x[0] == 'lambda':
         _, params, body = x
         return Procedure(params, body, env)
