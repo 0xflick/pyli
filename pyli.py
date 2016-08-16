@@ -125,7 +125,7 @@ def evaluate(x, env):
         env[var] = evaluate(expr, env)
     elif x[0] == 'if':
         _, test, conseq, alt = x
-        expr = conseq if evaluate(conseq, env) else alt
+        expr = conseq if evaluate(test, env) else alt
         return evaluate(expr, env)
     elif x[0] == 'quote':
         _, exp = x
