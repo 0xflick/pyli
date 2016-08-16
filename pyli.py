@@ -1,4 +1,5 @@
 import math
+import collections as co
 import operator as op
 
 Symbol = str
@@ -6,14 +7,38 @@ List = list
 Number = (int, float)
 
 
+class Procedure(object):
+    """A Scheme procedure"""
+
+    def __init__(self, params, body, env):
+        self.params = params
+        self.body = body
+        self.env = env
+
+    def __call__(self, *args):
+        env = Env(dict(zip(self.params, args)), self.env)
+        return evaluate(self.body, env)
+
+
+class Env(co.ChainMap):
+    """Variant of ChainMap that allows direct updates to inner scopes"""
+
+    def deep(self, key):
+        for mapping in self.maps:
+            if key in mapping:
+                return mapping
+
+
 def tokenize(program):
-    """returns a list of tokens for a given input string"""
+    """Returns a list of tokens for a given input string"""
+
     t = program.replace('(', ' ( ').replace(')', ' ) ').split()
     return [integerize(token) for token in t]
 
 
 def integerize(token):
-    """converts strings corresponding to integers into their equivalents"""
+    """Converts strings corresponding to integers into their equivalents"""
+
     try:
         return int(token)
     except ValueError:
@@ -24,7 +49,8 @@ def integerize(token):
 
 
 def parse(token_list):
-    """converts a list of tokens into something with structure"""
+    """Converts a list of tokens into something with structure"""
+
     if len(token_list) == 0:
         raise SyntaxError("Unexpected EOF while reading.")
     t = token_list.pop(0)
@@ -41,7 +67,8 @@ def parse(token_list):
 
 
 def standard_env():
-    """returns a standard environment"""
+    """Returns a standard environment"""
+
     env = dict()
     env.update(vars(math))
     env.update({
@@ -76,11 +103,12 @@ def standard_env():
         'round':      round,
         'symbol':     (lambda x:    isinstance(x, Symbol))
     })
-    return env
+    return Env(env)
 
 
 def evaluate(x, env):
-    """evaluates program"""
+    """Evaluates a Scheme program"""
+
     if isinstance(x, Symbol):
         if x in env:
             return env[x]
@@ -89,12 +117,21 @@ def evaluate(x, env):
     elif not isinstance(x, List):
         return x
     elif x[0] == 'define':
-        (_, var, expr) = x
+        _, var, expr = x
         env[var] = evaluate(expr, env)
     elif x[0] == 'if':
-        (_, test, conseq, alt) = x
-        expr = (conseq if evaluate(conseq, env) else alt)
+        _, test, conseq, alt = x
+        expr = conseq if evaluate(conseq, env) else alt
         return evaluate(expr, env)
+    elif x[0] == 'quote':
+        _, exp = x
+        return exp
+    elif x[0] == 'set!':
+        _, var, exp = x
+        env.deep(var)[var] = evaluate(exp, env)
+    elif x[0] == 'lambda':
+        _, params, body = x
+        return Procedure(params, body, env)
     else:
         proc = evaluate(x[0], env)
         args = [evaluate(arg, env) for arg in x[1:]]
@@ -103,9 +140,10 @@ def evaluate(x, env):
 
 
 def repl():
-    """a read-eval-print loop"""
+    """A read-eval-print loop"""
+    env = standard_env()
     while True:
-        val = evaluate(parse(tokenize(input('pyli >>  '))), standard_env())
+        val = evaluate(parse(tokenize(input('pyli >>  '))), env)
         if val is not None:
             print(val)
 
