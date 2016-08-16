@@ -82,7 +82,10 @@ def standard_env():
 def evaluate(x, env):
     """evaluates program"""
     if isinstance(x, Symbol):
-        return env[x]
+        if x in env:
+            return env[x]
+        else:
+            raise NameError("name {} is not defined".format(x))
     elif not isinstance(x, List):
         return x
     elif x[0] == 'define':
@@ -105,3 +108,6 @@ def repl():
         val = evaluate(parse(tokenize(input('pyli >>  '))), standard_env())
         if val is not None:
             print(val)
+
+if __name__ == '__main__':
+    repl()
